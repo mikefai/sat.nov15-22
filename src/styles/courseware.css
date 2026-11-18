@@ -3061,3 +3061,535 @@ textarea {
     background: #ffffff;
   }
 }
+
+
+/* ==========================================================================
+   12. Authentication Portal, Account Pill & Cloud Sync UI
+   ========================================================================== */
+
+.auth-loading-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-canvas);
+}
+
+.auth-loading-card {
+  background: var(--bg-paper);
+  border: 1px solid var(--rule-medium);
+  border-radius: var(--radius-lg);
+  padding: 28px 36px;
+  text-align: center;
+}
+
+.auth-loading-card p {
+  margin: 8px 0 0;
+  font-family: var(--font-serif);
+  font-size: 1.08rem;
+  color: var(--ink-700);
+}
+
+.auth-gate-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 24px;
+  background:
+    radial-gradient(circle at 12% 14%, rgba(29, 77, 65, 0.05), transparent 45%),
+    radial-gradient(circle at 88% 82%, rgba(156, 101, 22, 0.05), transparent 45%),
+    var(--bg-canvas);
+}
+
+.auth-gate-grid {
+  width: 100%;
+  max-width: 1040px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 440px);
+  gap: 36px;
+  align-items: center;
+}
+
+.auth-dossier-column {
+  padding: 12px 8px;
+}
+
+.auth-dossier-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.85rem, 3vw, 2.5rem);
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  color: var(--ink-900);
+  margin: 10px 0 14px;
+}
+
+.auth-dossier-lead {
+  font-size: 1.02rem;
+  color: var(--ink-700);
+  margin: 0 0 26px;
+  max-width: 54ch;
+}
+
+.auth-feature-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid var(--rule-medium);
+  padding-top: 20px;
+}
+
+.auth-ledger-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 12px 14px;
+  background: rgba(252, 251, 248, 0.72);
+  border: 1px solid var(--rule-light);
+  border-radius: var(--radius-md);
+}
+
+.auth-ledger-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: var(--accent-forest-soft);
+  border: 1px solid var(--accent-forest-border);
+  color: var(--accent-forest);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.auth-ledger-row strong {
+  display: block;
+  font-size: 0.93rem;
+  color: var(--ink-900);
+  margin-bottom: 2px;
+}
+
+.auth-ledger-row p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.48;
+  color: var(--ink-500);
+}
+
+.auth-card {
+  background: var(--bg-paper);
+  border: 1px solid var(--rule-medium);
+  border-top: 4px solid var(--accent-forest);
+  border-radius: var(--radius-lg);
+  padding: 28px 28px 24px;
+  box-shadow: 0 12px 32px rgba(25, 32, 38, 0.06);
+}
+
+.auth-modal-wrap {
+  width: 100%;
+  max-width: 450px;
+}
+
+.auth-modal-toprow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.auth-modal-heading {
+  font-family: var(--font-serif);
+  font-size: 1.45rem;
+  margin: 4px 0 0;
+}
+
+.auth-merge-note {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: var(--ink-500);
+  line-height: 1.5;
+}
+
+.auth-card-header h2 {
+  font-family: var(--font-serif);
+  font-size: 1.58rem;
+  margin: 4px 0 6px;
+  color: var(--ink-900);
+}
+
+.auth-card-sub {
+  margin: 0 0 18px;
+  font-size: 0.88rem;
+  color: var(--ink-500);
+  line-height: 1.5;
+}
+
+.auth-banner {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+
+.auth-banner-error {
+  background: var(--accent-rust-soft);
+  border: 1px solid var(--accent-rust-border);
+  color: var(--accent-rust);
+}
+
+.auth-banner-success {
+  background: var(--accent-forest-soft);
+  border: 1px solid var(--accent-forest-border);
+  color: var(--accent-forest);
+}
+
+.btn-google-oauth {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink-900);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-google-oauth:hover:not(:disabled) {
+  background: var(--bg-canvas);
+  border-color: var(--ink-700);
+}
+
+.btn-google-oauth:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 14px;
+  color: var(--ink-400);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule-light);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-recessed);
+  border: 1px solid var(--rule-light);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.auth-tab-btn {
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--ink-500);
+  cursor: pointer;
+}
+
+.auth-tab-btn.is-active {
+  background: var(--bg-paper);
+  color: var(--ink-900);
+  box-shadow: 0 1px 2px rgba(25, 32, 38, 0.08);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.auth-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 9px 11px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-medium);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-weight: 400;
+  color: var(--ink-900);
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--accent-forest);
+  background: #ffffff;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 10px 16px;
+  margin-top: 2px;
+}
+
+.auth-inline-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--accent-forest);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-back-link {
+  align-self: flex-start;
+}
+
+.auth-reset-note {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--ink-500);
+}
+
+.auth-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--ink-500);
+  padding-top: 4px;
+}
+
+.auth-otp-verify-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--rule-medium);
+}
+
+.auth-otp-input {
+  letter-spacing: 0.22em;
+  font-size: 1.05rem !important;
+  text-align: center;
+}
+
+.auth-guest-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-light);
+  text-align: center;
+}
+
+.btn-guest-continue {
+  border: 0;
+  background: none;
+  color: var(--ink-500);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.btn-guest-continue:hover {
+  color: var(--ink-900);
+  text-decoration: underline;
+}
+
+/* Header Account & Sync Pill */
+.btn-signin-chip {
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-forest-border);
+  background: var(--accent-forest-soft);
+  color: var(--accent-forest);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-signin-chip:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: #ffffff;
+}
+
+.account-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--rule-medium);
+  border-radius: 999px;
+  background: var(--bg-paper);
+  font-size: 0.79rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.account-sync-pill:hover {
+  border-color: var(--rule-strong);
+  background: var(--bg-hover);
+}
+
+.account-avatar-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-forest);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-pill-name {
+  font-weight: 600;
+  color: var(--ink-900);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sync-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-400);
+}
+
+.sync-status-dot.status-synced {
+  background: #22863a;
+}
+
+.sync-status-dot.status-saving,
+.sync-status-dot.status-loading {
+  background: var(--accent-ochre);
+}
+
+.sync-status-dot.status-error {
+  background: var(--accent-rust);
+}
+
+.sync-status-text {
+  font-size: 0.72rem;
+  color: var(--ink-500);
+}
+
+/* Account Modal */
+.account-summary-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-light);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.account-avatar-lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-forest);
+  color: #ffffff;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.account-meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: var(--ink-500);
+}
+
+.account-meta-col strong {
+  font-size: 0.98rem;
+  color: var(--ink-900);
+}
+
+.account-sync-caption {
+  font-size: 0.75rem;
+  color: var(--accent-forest);
+}
+
+.account-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .auth-gate-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 480px;
+  }
+  .account-pill-name,
+  .sync-status-text {
+    display: none;
+  }
+  .account-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

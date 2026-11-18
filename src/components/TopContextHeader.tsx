@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { CourseData, RouteView } from '../types/course';
+import { useAuth } from '../state/useAuth';
 import { useCourseStore } from '../state/useCourseStore';
 
 interface TopContextHeaderProps {
@@ -15,12 +16,43 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
   onToggleFocus,
   onOpenMobileMenu,
 }) => {
-  const { route, navigate, exportStateJson, importStateJson, resetAllProgress } =
-    useCourseStore();
+  const {
+    user,
+    profile,
+    openAuthModal,
+    updateProfile,
+    signOut,
+  } = useAuth();
+  const {
+    route,
+    syncStatus,
+    lastSyncedAt,
+    syncNow,
+    navigate,
+    exportStateJson,
+    importStateJson,
+    resetAllProgress,
+  } = useCourseStore();
+
   const [desmosOpen, setDesmosOpen] = useState(false);
   const [dataModalOpen, setDataModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+
+  const [editName, setEditName] = useState('');
+  const [editTarget, setEditTarget] = useState(1400);
+  const [accountMsg, setAccountMsg] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setEditName(profile.display_name || '');
+      setEditTarget(profile.target_score || 1400);
+    } else if (user?.email) {
+      setEditName(user.email.split('@')[0]);
+    }
+  }, [profile, user?.email]);
 
   // Compute breadcrumb & Prev/Next navigation targets
   let sectionCrumb = 'Course Foundations';
@@ -92,6 +124,32 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
     if (ok) setImportText('');
   };
 
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    setAccountMsg('');
+    const clampedTarget = Math.min(1600, Math.max(400, Number(editTarget) || 1400));
+    const res = await updateProfile({
+      display_name: editName.trim() || null || undefined,
+      target_score: clampedTarget,
+    });
+    setSavingProfile(false);
+    setAccountMsg(res.message || (res.ok ? 'Saved.' : 'Could not update profile.'));
+  };
+
+  const displayLabel =
+    profile?.display_name || (user?.email ? user.email.split('@')[0] : 'Account');
+  const avatarInitial = (displayLabel[0] || 'S').toUpperCase();
+
+  const syncBadgeLabel =
+    syncStatus === 'saving' || syncStatus === 'loading'
+      ? 'Syncing…'
+      : syncStatus === 'synced'
+      ? 'Synced'
+      : syncStatus === 'error'
+      ? 'Sync Retry'
+      : 'Local';
+
   return (
     <>
       <header className="top-context-bar">
@@ -142,6 +200,32 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
           >
             Backup
           </button>
+
+          {user ? (
+            <button
+              type="button"
+              className="account-sync-pill"
+              onClick={() => {
+                setAccountMsg('');
+                setAccountModalOpen(true);
+              }}
+              title="Student Account & Cloud Sync"
+            >
+              <span className="account-avatar-dot">{avatarInitial}</span>
+              <span className="account-pill-name">{displayLabel}</span>
+              <span className={`sync-status-dot status-${syncStatus}`} />
+              <span className="sync-status-text">{syncBadgeLabel}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-signin-chip"
+              onClick={openAuthModal}
+              title="Sign in with Google or Email to sync your progress"
+            >
+              Sign In · Sync
+            </button>
+          )}
 
           <div className="step-nav-pair">
             <button
@@ -246,9 +330,9 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
               </button>
             </div>
             <p className="modal-desc">
-              Your checked steps, solved practice questions, vocabulary sentences, and Error Log
-              entries are saved automatically in this browser. Export a JSON snapshot anytime to
-              back up or move devices.
+              {user
+                ? `Signed in as ${user.email}. Your study progress syncs automatically to your cloud account and is also cached locally.`
+                : 'Your checked steps, solved practice questions, vocabulary sentences, and Error Log entries are saved in this browser. Sign in to sync across devices or export a JSON snapshot.'}
             </p>
             <div className="modal-actions-row">
               <button type="button" className="btn-primary" onClick={handleDownloadBackup}>
@@ -260,7 +344,9 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
                 onClick={() => {
                   if (
                     window.confirm(
-                      'Clear all saved practice answers, checkboxes, and error log entries in this browser?'
+                      user
+                        ? 'Clear all saved practice answers, checkboxes, and error log entries in both this browser and your cloud account?'
+                        : 'Clear all saved practice answers, checkboxes, and error log entries in this browser?'
                     )
                   ) {
                     resetAllProgress();
@@ -268,7 +354,7 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
                   }
                 }}
               >
-                Reset Browser Progress
+                Reset All Progress
               </button>
             </div>
 
@@ -286,6 +372,95 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
               </button>
             </div>
             {statusMsg && <p className="modal-status-msg">{statusMsg}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Authenticated Student Account & Cloud Sync Modal */}
+      {accountModalOpen && user && (
+        <div className="modal-overlay" onClick={() => setAccountModalOpen(false)}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Student Account &amp; Cloud Sync</h3>
+              <button
+                type="button"
+                className="desmos-close-btn"
+                onClick={() => setAccountModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="account-summary-strip">
+              <div className="account-avatar-lg">{avatarInitial}</div>
+              <div className="account-meta-col">
+                <strong>{displayLabel}</strong>
+                <span>{user.email}</span>
+                <span className="account-sync-caption mono-num">
+                  Status: {syncBadgeLabel}
+                  {lastSyncedAt
+                    ? ` · Last saved ${new Date(lastSyncedAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}`
+                    : ''}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="account-profile-form">
+              <div className="account-form-grid">
+                <label className="auth-field">
+                  <span>Display Name</span>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </label>
+                <label className="auth-field">
+                  <span>Target SAT Score</span>
+                  <input
+                    type="number"
+                    min={400}
+                    max={1600}
+                    step={10}
+                    className="mono-num"
+                    value={editTarget}
+                    onChange={(e) => setEditTarget(Number(e.target.value))}
+                  />
+                </label>
+              </div>
+
+              <div className="account-actions-bar">
+                <button type="submit" className="btn-primary" disabled={savingProfile}>
+                  {savingProfile ? 'Saving…' : 'Save Profile'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={async () => {
+                    await syncNow();
+                    setAccountMsg('Progress synced to Supabase cloud.');
+                  }}
+                >
+                  Sync Now
+                </button>
+                <button
+                  type="button"
+                  className="btn-danger-outline"
+                  onClick={async () => {
+                    setAccountModalOpen(false);
+                    await signOut();
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            </form>
+
+            {accountMsg && <p className="modal-status-msg">{accountMsg}</p>}
           </div>
         </div>
       )}

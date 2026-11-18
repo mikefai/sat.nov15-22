@@ -26,7 +26,7 @@ Every Markdown workbook and tracker compiles losslessly into a warm, distraction
 - **Built-In Desmos & Triage Drawer:** One-click slide-over Desmos Graphing Calculator paired with a 5-second regression, slider, and system-intersection reference card.
 - **60-Word Spaced Retrieval Studio:** Searchable 7-column vocabulary notebook with `Cover Meanings` self-test mode, interactive 3-layer flashcards, personal English sentence authoring, and custom vocabulary expansion (`#61+`).
 - **Diagnostic Error Log & Reflection Engine:** Inline `+ Log Mistake` capture from any practice item, `E1–E10` / `V1–V7` root-cause classification, automatic **`3+ Recurring Pattern` escalation alerts**, and structured 15-minute End-of-Day Reflection cards.
-- **Local-First Persistence:** Zero external database or account required—all study progress saves automatically in `localStorage` with portable JSON backup/restore via the **Backup** menu.
+- **Supabase Auth & Cloud Sync + Guest Mode:** Sign in via **Google OAuth**, **Email & Password**, or **Magic Link / One-Time Code** to sync progress across devices (`public.profiles` & `public.course_progress` protected by Postgres Row-Level Security), or study in browser-only Guest Mode with automatic local-to-cloud merging when you sign in later.
 
 ---
 
@@ -155,10 +155,13 @@ Open **`http://localhost:5173/`** in your browser.
 ├── scripts/
 │   ├── compile-course.mjs                        # Compiles Markdown + KaTeX AST -> src/generated/courseData.json
 │   └── verify-webapp.mjs                         # Automated curriculum & structural assertion suite
+├── supabase/
+│   └── migrations/                               # Postgres schema, triggers & RLS policies (profiles, course_progress)
 └── src/
-    ├── components/                               # SidebarRail, TopContextHeader, PracticeSetWorkspace, etc.
+    ├── components/                               # AuthPortal, SidebarRail, TopContextHeader, PracticeSetWorkspace, etc.
+    ├── lib/supabase.ts                           # Typed Supabase PKCE client & OAuth callback utilities
     ├── views/                                    # Overview, MasterPlan, DayStep, VocabStudio, ErrorLog views
-    ├── state/useCourseStore.tsx                  # Hash router + localStorage persistence + JSON backup/restore
+    ├── state/                                    # useAuth.tsx + useCourseStore.tsx (smart local/cloud merge & sync)
     ├── utils/sprGrading.ts                       # Bluebook-equivalent SPR fraction/decimal evaluator
     └── styles/courseware.css                     # Warm archival paper & scholarly typography design system
 ```

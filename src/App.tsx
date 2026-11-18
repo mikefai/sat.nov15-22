@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import courseDataJson from './generated/courseData.json';
 import type { CourseData } from './types/course';
+import { AuthProvider, useAuth } from './state/useAuth';
 import { CourseProvider, useCourseStore } from './state/useCourseStore';
+import { AuthPortal } from './components/AuthPortal';
 import { SidebarRail } from './components/SidebarRail';
 import { TopContextHeader } from './components/TopContextHeader';
 import { OverviewView } from './views/OverviewView';
@@ -13,9 +15,25 @@ import { ErrorLogView } from './views/ErrorLogView';
 const course = courseDataJson as unknown as CourseData;
 
 const CourseShell: React.FC = () => {
+  const { user, authLoading, guestMode, authModalOpen, recoveryMode } = useAuth();
   const { route } = useCourseStore();
   const [focusMode, setFocusMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (authLoading) {
+    return (
+      <div className="auth-loading-shell">
+        <div className="auth-loading-card">
+          <span className="section-kicker">DIGITAL SAT 1400+ INTENSIVE</span>
+          <p>Loading your coursebook session…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && !guestMode) {
+    return <AuthPortal variant="gate" />;
+  }
 
   const renderMainView = () => {
     switch (route.kind) {
@@ -58,15 +76,19 @@ const CourseShell: React.FC = () => {
         />
         <main className="course-main-canvas">{renderMainView()}</main>
       </div>
+
+      {((authModalOpen && !user) || recoveryMode) && <AuthPortal variant="modal" />}
     </div>
   );
 };
 
 export const App: React.FC = () => {
   return (
-    <CourseProvider>
-      <CourseShell />
-    </CourseProvider>
+    <AuthProvider>
+      <CourseProvider>
+        <CourseShell />
+      </CourseProvider>
+    </AuthProvider>
   );
 };
 
