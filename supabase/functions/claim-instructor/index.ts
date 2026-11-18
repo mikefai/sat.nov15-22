@@ -7,19 +7,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// SHA-256 digest of the default Instructor Access Code (no plaintext secret stored in code)
-const DEFAULT_PASSCODE_SHA256 =
-  "981ee4bbbc91015966cdfad9a47a809f4c42e019e0ed5adfc859c8c4b0230262";
-const PRIMARY_INSTRUCTOR_EMAIL = "mikeperac@gmail.com";
-
-async function sha256Hex(input: string): Promise<string> {
-  const bytes = new TextEncoder().encode(input);
-  const hashBuf = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(hashBuf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
@@ -62,21 +49,28 @@ Deno.serve(async (req: Request) => {
       passcode = "";
     }
 
-    const emailNormalized = (user.email ?? "").trim().toLowerCase();
-    const isAllowlistedEmail = emailNormalized === PRIMARY_INSTRUCTOR_EMAIL;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const customSecret = (Deno.env.get("INSTRUCTOR_ACCESS_CODE") ?? "").trim();
+    const { data: cfgRow } = await adminClient
+      .from("instructor_auth_config")
+      .select("primary_email")
+      .eq("id", 1)
+      .maybeSingle();
+
+    const primaryEmail = (cfgRow?.primary_email ?? "mikeperac@gmail.com").trim().toLowerCase();
+    const emailNormalized = (user.email ?? "").trim().toLowerCase();
+    const isConfirmedAllowlistedEmail =
+      Boolean(user.email_confirmed_at) && emailNormalized === primaryEmail;
+
     let isPasscodeMatch = false;
     if (passcode.length > 0) {
-      if (customSecret.length > 0) {
-        isPasscodeMatch = passcode === customSecret;
-      } else {
-        const digest = await sha256Hex(passcode);
-        isPasscodeMatch = digest === DEFAULT_PASSCODE_SHA256;
-      }
+      const { data: verified } = await adminClient.rpc("verify_instructor_passcode", {
+        p_passcode: passcode,
+      });
+      isPasscodeMatch = Boolean(verified);
     }
 
-    if (!isAllowlistedEmail && !isPasscodeMatch) {
+    if (!isConfirmedAllowlistedEmail && !isPasscodeMatch) {
       return new Response(
         JSON.stringify({ ok: false, error: "Invalid Instructor Access Code." }),
         {
@@ -86,11 +80,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { error: upsertErr } = await adminClient.from("admin_users").upsert(
       {
         user_id: user.id,
-        reason: isAllowlistedEmail ? "email_allowlist" : "instructor_passcode",
+        reason: isConfirmedAllowlistedEmail ? "email_allowlist" : "instructor_passcode",
       },
       { onConflict: "user_id" }
     );

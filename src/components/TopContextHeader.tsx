@@ -20,6 +20,8 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
     user,
     profile,
     isAdmin,
+    adminNotice,
+    clearAdminNotice,
     openAuthModal,
     claimInstructorAdmin,
     updateProfile,
@@ -271,6 +273,15 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
           </div>
         </div>
       </header>
+
+      {adminNotice && (
+        <div className="admin-top-notice" role="status">
+          <span>{adminNotice}</span>
+          <button type="button" className="auth-inline-link" onClick={clearAdminNotice}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Desmos Quick Reference & Embedded Calculator Drawer */}
       {desmosOpen && (

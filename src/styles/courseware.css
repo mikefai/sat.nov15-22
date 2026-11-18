@@ -3871,3 +3871,15 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.admin-top-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 24px;
+  background: var(--accent-ochre-soft);
+  border-bottom: 1px solid var(--accent-ochre-border);
+  font-size: 0.83rem;
+  color: var(--ink-900);
+}

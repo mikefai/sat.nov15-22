@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import {
   consumeUrlAuthError,
@@ -24,6 +32,9 @@ interface AuthContextValue {
   session: Session | null;
   profile: ProfileRow | null;
   isAdmin: boolean;
+  adminLoading: boolean;
+  adminNotice: string | null;
+  clearAdminNotice: () => void;
   authLoading: boolean;
   guestMode: boolean;
   authModalOpen: boolean;
@@ -58,7 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminNotice, setAdminNotice] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const adminSyncInFlightRef = useRef<{ userId: string; promise: Promise<void> } | null>(null);
   const [guestMode, setGuestMode] = useState<boolean>(() => {
     try {
       return window.localStorage.getItem(GUEST_MODE_KEY) === 'true';
@@ -95,34 +109,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const syncAdminStatus = useCallback(
-    async (authUser: User) => {
-      try {
-        const pendingCode = window.sessionStorage.getItem(PENDING_INSTRUCTOR_CODE_KEY);
-        if (pendingCode) {
-          window.sessionStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
-          const claimRes = await invokeClaimInstructor(pendingCode);
-          if (claimRes.ok) {
+    (authUser: User): Promise<void> => {
+      if (adminSyncInFlightRef.current?.userId === authUser.id) {
+        return adminSyncInFlightRef.current.promise;
+      }
+
+      setAdminLoading(true);
+      const run = (async () => {
+        try {
+          let pendingCode: string | null = null;
+          try {
+            pendingCode = window.localStorage.getItem(PENDING_INSTRUCTOR_CODE_KEY);
+          } catch {
+            pendingCode = null;
+          }
+
+          if (pendingCode) {
+            const claimRes = await invokeClaimInstructor(pendingCode);
+            try {
+              window.localStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
+            } catch {
+              // Ignore storage restrictions
+            }
+            if (claimRes.ok) {
+              setIsAdmin(true);
+              return;
+            }
+            setAdminNotice(
+              'Account signed in, though the Instructor Access Code did not match. You can re-enter it in your Account menu.'
+            );
+          }
+
+          const { data: rpcAdmin } = await supabase.rpc('is_my_account_admin');
+          if (rpcAdmin) {
             setIsAdmin(true);
             return;
           }
+
+          if (
+            Boolean(authUser.email_confirmed_at) &&
+            (authUser.email ?? '').trim().toLowerCase() === PRIMARY_INSTRUCTOR_EMAIL
+          ) {
+            const autoRes = await invokeClaimInstructor('');
+            setIsAdmin(Boolean(autoRes.ok));
+            return;
+          }
+
+          setIsAdmin(false);
+        } finally {
+          if (adminSyncInFlightRef.current?.userId === authUser.id) {
+            adminSyncInFlightRef.current = null;
+          }
+          setAdminLoading(false);
         }
-      } catch {
-        // Ignore sessionStorage restrictions
-      }
+      })();
 
-      const { data: rpcAdmin } = await supabase.rpc('is_my_account_admin');
-      if (rpcAdmin) {
-        setIsAdmin(true);
-        return;
-      }
-
-      if ((authUser.email ?? '').trim().toLowerCase() === PRIMARY_INSTRUCTOR_EMAIL) {
-        const autoRes = await invokeClaimInstructor('');
-        setIsAdmin(Boolean(autoRes.ok));
-        return;
-      }
-
-      setIsAdmin(false);
+      adminSyncInFlightRef.current = { userId: authUser.id, promise: run };
+      return run;
     },
     [invokeClaimInstructor]
   );
@@ -171,15 +214,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
       if (!active) return;
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       if (initialSession?.user) {
         void fetchOrEnsureProfile(initialSession.user);
-        void syncAdminStatus(initialSession.user);
+        await syncAdminStatus(initialSession.user);
       }
-      setAuthLoading(false);
+      if (active) setAuthLoading(false);
     });
 
     const {
@@ -235,17 +278,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearUrlAuthError = useCallback(() => setUrlAuthError(null), []);
+  const clearAdminNotice = useCallback(() => setAdminNotice(null), []);
 
   const signInWithGoogle = useCallback(async (instructorCode?: string): Promise<AuthActionResult> => {
     try {
-      if (instructorCode?.trim()) {
-        try {
-          window.sessionStorage.setItem(PENDING_INSTRUCTOR_CODE_KEY, instructorCode.trim());
-        } catch {
-          // Ignore sessionStorage restrictions
-        }
-      }
-
       try {
         const settingsRes = await fetch(`${SUPABASE_PROJECT_URL}/auth/v1/settings`, {
           headers: { apikey: SUPABASE_PUBLISHABLE_KEY },
@@ -264,6 +300,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch {
         // Proceed directly to OAuth redirect if pre-flight check is unreachable
+      }
+
+      if (instructorCode?.trim()) {
+        try {
+          window.localStorage.setItem(PENDING_INSTRUCTOR_CODE_KEY, instructorCode.trim());
+        } catch {
+          // Ignore storage restrictions
+        }
       }
 
       const redirectTo = `${window.location.origin}${window.location.pathname}`;
@@ -314,9 +358,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (cleanCode) {
         try {
-          window.sessionStorage.setItem(PENDING_INSTRUCTOR_CODE_KEY, cleanCode);
+          window.localStorage.setItem(PENDING_INSTRUCTOR_CODE_KEY, cleanCode);
         } catch {
-          // Ignore sessionStorage restrictions
+          // Ignore storage restrictions
         }
       }
 
@@ -332,10 +376,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        try {
+          window.localStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
+        } catch {
+          // Ignore
+        }
         return { ok: false, message: error.message };
       }
 
       if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        try {
+          window.localStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
+        } catch {
+          // Ignore
+        }
         return {
           ok: false,
           message:
@@ -343,22 +397,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-      if (data.session) {
-        if (cleanCode) {
-          try {
-            window.sessionStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
-          } catch {
-            // Ignore
-          }
-          const claimRes = await invokeClaimInstructor(cleanCode);
-          if (!claimRes.ok) {
-            return {
-              ok: true,
-              message:
-                'Account created, though the Instructor Access Code did not match. You can re-enter it anytime in your Account menu.',
-            };
-          }
-        }
+      if (data.session && data.user) {
+        await syncAdminStatus(data.user);
         return { ok: true, message: 'Account created and signed in.' };
       }
 
@@ -368,7 +408,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: `Verification email sent to ${cleanEmail}. Click the confirmation link in your inbox to activate your account.`,
       };
     },
-    [invokeClaimInstructor]
+    [syncAdminStatus]
   );
 
   const claimInstructorAdmin = useCallback(
@@ -489,9 +529,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    setAdminNotice(null);
     setGuestMode(false);
     try {
       window.localStorage.removeItem(GUEST_MODE_KEY);
+      window.localStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
     } catch {
       // Ignore storage failures cleanly
     }
@@ -503,6 +545,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       profile,
       isAdmin,
+      adminLoading,
+      adminNotice,
+      clearAdminNotice,
       authLoading,
       guestMode,
       authModalOpen,
@@ -529,6 +574,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       profile,
       isAdmin,
+      adminLoading,
+      adminNotice,
+      clearAdminNotice,
       authLoading,
       guestMode,
       authModalOpen,

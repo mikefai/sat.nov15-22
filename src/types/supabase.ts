@@ -109,6 +109,7 @@ export type Database = {
     Functions: {
       claim_instructor_admin: { Args: { passcode: string }; Returns: boolean };
       is_my_account_admin: { Args: never; Returns: boolean };
+      verify_instructor_passcode: { Args: { p_passcode: string }; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;

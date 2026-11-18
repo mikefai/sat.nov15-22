@@ -31,7 +31,8 @@ function formatRelativeTime(iso: string): string {
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ course }) => {
-  const { user, isAdmin, openAuthModal, claimInstructorAdmin } = useAuth();
+  const { user, isAdmin, authLoading, adminLoading, openAuthModal, claimInstructorAdmin } =
+    useAuth();
   const { navigate } = useCourseStore();
 
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -122,6 +123,17 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ course }
 
     return { total, active7d, avgSteps, cohortAcc, totalSolved };
   }, [allRecords]);
+
+  if (authLoading || adminLoading) {
+    return (
+      <div className="course-page-shell">
+        <section className="reading-sheet admin-restricted-card">
+          <span className="section-kicker">INSTRUCTOR PORTAL</span>
+          <h2>Verifying Instructor Session…</h2>
+        </section>
+      </div>
+    );
+  }
 
   if (!user || !isAdmin) {
     return (
@@ -480,7 +492,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ course }
                           <td className="mono-num">{q.studentResponse}</td>
                           <td className="mono-num">{q.correctAnswer}</td>
                           <td className="mono-num">
-                            {!q.isCorrect ? '✗ Missed ' : '✓ Right '}
+                            {!q.checked
+                              ? '○ Unchecked '
+                              : !q.isCorrect
+                              ? '✗ Missed '
+                              : '✓ Right '}
                             {q.flagged ? '· ⚑ Flagged ' : ''}
                             {q.confidence ? `· [${q.confidence}]` : ''}
                           </td>

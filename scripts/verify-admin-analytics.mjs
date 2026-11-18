@@ -41,6 +41,7 @@ const rwQ1 = course.days[0].rwPractice.questions[0];
 const rwQ2 = course.days[0].rwPractice.questions[1];
 const mathQ1 = course.days[0].mathPractice.questions[0];
 const mathQ2 = course.days[0].mathPractice.questions[1];
+const mathQ3 = course.days[0].mathPractice.questions[2];
 
 const wrongLetter = (correct) => (correct === 'A' ? 'B' : 'A');
 
@@ -92,6 +93,11 @@ const progressRows = [
           confidence: '?',
           eliminatedChoices: [],
           flagged: false,
+        },
+        [mathQ3.id]: {
+          checked: false,
+          eliminatedChoices: [],
+          flagged: true,
         },
       },
       checkedBoxes: { 'd1-s1-chk-1': true },
@@ -191,7 +197,11 @@ assert.equal(hana.mathAccuracyPct, 50);
 assert.equal(hana.completedSteps, 2);
 assert.equal(hana.masteredWords, 1);
 assert.deepEqual(hana.recurringErrorCodes, ['E2 (3)']);
-assert.equal(hana.missedOrFlaggedQuestions.length, 2);
+assert.equal(hana.missedOrFlaggedQuestions.length, 3);
+const uncheckedFlagged = hana.missedOrFlaggedQuestions.find((q) => q.questionId === mathQ3.id);
+assert.ok(uncheckedFlagged, 'Flagged-but-unchecked question should appear in audit list');
+assert.equal(uncheckedFlagged.checked, false, 'Flagged-but-unchecked item must have checked=false');
+assert.equal(uncheckedFlagged.flagged, true);
 assert.equal(hana.writtenVocabItems.length, 2);
 assert.equal(hana.reflections.length, 1);
 assert.equal(hana.dayBreakdown[0].completedSteps, 2);

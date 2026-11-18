@@ -27,6 +27,7 @@ export interface StudentQuestionAuditItem {
   difficulty: string;
   studentResponse: string;
   correctAnswer: string;
+  checked: boolean;
   isCorrect: boolean;
   flagged: boolean;
   confidence?: 'C' | '?';
@@ -152,6 +153,7 @@ export function buildStudentOverviewRecords(
           difficulty: qMeta?.difficulty || '',
           studentResponse,
           correctAnswer: qMeta?.correctAnswer || '',
+          checked: isChecked,
           isCorrect: isChecked && isRight,
           flagged: Boolean(att.flagged),
           confidence: att.confidence,
