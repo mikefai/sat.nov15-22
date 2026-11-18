@@ -12,6 +12,24 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          granted_at: string;
+          reason: string;
+          user_id: string;
+        };
+        Insert: {
+          granted_at?: string;
+          reason?: string;
+          user_id: string;
+        };
+        Update: {
+          granted_at?: string;
+          reason?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       course_progress: {
         Row: {
           completed_steps: number;
@@ -89,7 +107,8 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      claim_instructor_admin: { Args: { passcode: string }; Returns: boolean };
+      is_my_account_admin: { Args: never; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;
@@ -102,3 +121,4 @@ export type Database = {
 
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type CourseProgressRow = Database['public']['Tables']['course_progress']['Row'];
+export type AdminUserRow = Database['public']['Tables']['admin_users']['Row'];
