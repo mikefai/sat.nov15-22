@@ -11,6 +11,7 @@ import { MasterPlanView } from './views/MasterPlanView';
 import { DayStepView } from './views/DayStepView';
 import { VocabStudioView } from './views/VocabStudioView';
 import { ErrorLogView } from './views/ErrorLogView';
+import { AdminDashboardView } from './views/AdminDashboardView';
 
 const course = courseDataJson as unknown as CourseData;
 
@@ -56,6 +57,8 @@ const CourseShell: React.FC = () => {
         );
       case 'error-log':
         return <ErrorLogView course={course} initialTab={route.tab} />;
+      case 'admin':
+        return <AdminDashboardView course={course} />;
     }
   };
 

@@ -10,6 +10,8 @@ import {
 import type { ProfileRow } from '../types/supabase';
 
 const GUEST_MODE_KEY = 'sat_1400_guest_mode_v1';
+const PENDING_INSTRUCTOR_CODE_KEY = 'sat_1400_pending_instructor_code';
+const PRIMARY_INSTRUCTOR_EMAIL = 'mikeperac@gmail.com';
 
 export interface AuthActionResult {
   ok: boolean;
@@ -21,6 +23,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   profile: ProfileRow | null;
+  isAdmin: boolean;
   authLoading: boolean;
   guestMode: boolean;
   authModalOpen: boolean;
@@ -30,13 +33,15 @@ interface AuthContextValue {
   enterGuestMode: () => void;
   openAuthModal: () => void;
   closeAuthModal: () => void;
-  signInWithGoogle: () => Promise<AuthActionResult>;
+  signInWithGoogle: (instructorCode?: string) => Promise<AuthActionResult>;
   signInWithEmailPassword: (email: string, password: string) => Promise<AuthActionResult>;
   signUpWithEmailPassword: (
     email: string,
     password: string,
-    displayName: string
+    displayName: string,
+    instructorCode?: string
   ) => Promise<AuthActionResult>;
+  claimInstructorAdmin: (passcode: string) => Promise<AuthActionResult>;
   resendSignupConfirmation: (email: string) => Promise<AuthActionResult>;
   sendEmailMagicLinkOrOtp: (email: string) => Promise<AuthActionResult>;
   verifyEmailOtpCode: (email: string, token: string) => Promise<AuthActionResult>;
@@ -52,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [guestMode, setGuestMode] = useState<boolean>(() => {
     try {
@@ -63,6 +69,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [urlAuthError, setUrlAuthError] = useState<string | null>(() => consumeUrlAuthError());
+
+  const invokeClaimInstructor = useCallback(async (passcode: string): Promise<AuthActionResult> => {
+    const { data, error } = await supabase.functions.invoke('claim-instructor', {
+      body: { passcode: passcode.trim() },
+    });
+
+    if (error) {
+      return {
+        ok: false,
+        message: 'Invalid Instructor Access Code.',
+      };
+    }
+
+    const parsed = data as { ok?: boolean; error?: string } | null;
+    if (!parsed?.ok) {
+      return {
+        ok: false,
+        message: parsed?.error || 'Invalid Instructor Access Code.',
+      };
+    }
+
+    setIsAdmin(true);
+    return { ok: true, message: 'Instructor Admin access unlocked.' };
+  }, []);
+
+  const syncAdminStatus = useCallback(
+    async (authUser: User) => {
+      try {
+        const pendingCode = window.sessionStorage.getItem(PENDING_INSTRUCTOR_CODE_KEY);
+        if (pendingCode) {
+          window.sessionStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
+          const claimRes = await invokeClaimInstructor(pendingCode);
+          if (claimRes.ok) {
+            setIsAdmin(true);
+            return;
+          }
+        }
+      } catch {
+        // Ignore sessionStorage restrictions
+      }
+
+      const { data: rpcAdmin } = await supabase.rpc('is_my_account_admin');
+      if (rpcAdmin) {
+        setIsAdmin(true);
+        return;
+      }
+
+      if ((authUser.email ?? '').trim().toLowerCase() === PRIMARY_INSTRUCTOR_EMAIL) {
+        const autoRes = await invokeClaimInstructor('');
+        setIsAdmin(Boolean(autoRes.ok));
+        return;
+      }
+
+      setIsAdmin(false);
+    },
+    [invokeClaimInstructor]
+  );
 
   const fetchOrEnsureProfile = useCallback(async (authUser: User) => {
     const { data, error } = await supabase
@@ -114,6 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(initialSession?.user ?? null);
       if (initialSession?.user) {
         void fetchOrEnsureProfile(initialSession.user);
+        void syncAdminStatus(initialSession.user);
       }
       setAuthLoading(false);
     });
@@ -132,9 +196,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (nextSession?.user) {
         void fetchOrEnsureProfile(nextSession.user);
+        void syncAdminStatus(nextSession.user);
         setAuthModalOpen((prev) => (event === 'PASSWORD_RECOVERY' ? prev : false));
 
-        // Clean PKCE `?code=...` or OAuth hash fragments from address bar after sign-in
         const url = new URL(window.location.href);
         if (url.searchParams.has('code') || isSupabaseAuthCallbackHash(window.location.hash)) {
           url.searchParams.delete('code');
@@ -145,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         setProfile(null);
+        setIsAdmin(false);
       }
     });
 
@@ -152,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       active = false;
       subscription.unsubscribe();
     };
-  }, [fetchOrEnsureProfile]);
+  }, [fetchOrEnsureProfile, syncAdminStatus]);
 
   const enterGuestMode = useCallback(() => {
     setGuestMode(true);
@@ -171,10 +236,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearUrlAuthError = useCallback(() => setUrlAuthError(null), []);
 
-  const signInWithGoogle = useCallback(async (): Promise<AuthActionResult> => {
+  const signInWithGoogle = useCallback(async (instructorCode?: string): Promise<AuthActionResult> => {
     try {
-      // Pre-flight check so if Google OAuth hasn't been toggled ON in Supabase Dashboard yet,
-      // the user sees a helpful inline message rather than a raw GoTrue 400 JSON page.
+      if (instructorCode?.trim()) {
+        try {
+          window.sessionStorage.setItem(PENDING_INSTRUCTOR_CODE_KEY, instructorCode.trim());
+        } catch {
+          // Ignore sessionStorage restrictions
+        }
+      }
+
       try {
         const settingsRes = await fetch(`${SUPABASE_PROJECT_URL}/auth/v1/settings`, {
           headers: { apikey: SUPABASE_PUBLISHABLE_KEY },
@@ -233,11 +304,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async (
       email: string,
       password: string,
-      displayName: string
+      displayName: string,
+      instructorCode?: string
     ): Promise<AuthActionResult> => {
       const cleanEmail = email.trim();
       const cleanName = displayName.trim() || cleanEmail.split('@')[0];
+      const cleanCode = (instructorCode || '').trim();
       const redirectTo = `${window.location.origin}${window.location.pathname}`;
+
+      if (cleanCode) {
+        try {
+          window.sessionStorage.setItem(PENDING_INSTRUCTOR_CODE_KEY, cleanCode);
+        } catch {
+          // Ignore sessionStorage restrictions
+        }
+      }
 
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
@@ -254,7 +335,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { ok: false, message: error.message };
       }
 
-      // Supabase returns an empty identities array if the email already exists when email enumeration protection is on
       if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
         return {
           ok: false,
@@ -264,6 +344,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.session) {
+        if (cleanCode) {
+          try {
+            window.sessionStorage.removeItem(PENDING_INSTRUCTOR_CODE_KEY);
+          } catch {
+            // Ignore
+          }
+          const claimRes = await invokeClaimInstructor(cleanCode);
+          if (!claimRes.ok) {
+            return {
+              ok: true,
+              message:
+                'Account created, though the Instructor Access Code did not match. You can re-enter it anytime in your Account menu.',
+            };
+          }
+        }
         return { ok: true, message: 'Account created and signed in.' };
       }
 
@@ -273,7 +368,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: `Verification email sent to ${cleanEmail}. Click the confirmation link in your inbox to activate your account.`,
       };
     },
-    []
+    [invokeClaimInstructor]
+  );
+
+  const claimInstructorAdmin = useCallback(
+    async (passcode: string): Promise<AuthActionResult> => {
+      if (!passcode.trim() && (user?.email ?? '').trim().toLowerCase() !== PRIMARY_INSTRUCTOR_EMAIL) {
+        return { ok: false, message: 'Enter your Instructor Access Code.' };
+      }
+      return invokeClaimInstructor(passcode);
+    },
+    [invokeClaimInstructor, user?.email]
   );
 
   const resendSignupConfirmation = useCallback(
@@ -376,13 +481,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { ok: false, message: error.message };
       }
       if (data) setProfile(data);
-      return { ok: true, message: 'Student profile saved.' };
+      return { ok: true, message: 'Profile saved.' };
     },
     [user]
   );
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    setIsAdmin(false);
     setGuestMode(false);
     try {
       window.localStorage.removeItem(GUEST_MODE_KEY);
@@ -396,6 +502,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       session,
       profile,
+      isAdmin,
       authLoading,
       guestMode,
       authModalOpen,
@@ -408,6 +515,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle,
       signInWithEmailPassword,
       signUpWithEmailPassword,
+      claimInstructorAdmin,
       resendSignupConfirmation,
       sendEmailMagicLinkOrOtp,
       verifyEmailOtpCode,
@@ -420,6 +528,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       session,
       profile,
+      isAdmin,
       authLoading,
       guestMode,
       authModalOpen,
@@ -432,6 +541,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle,
       signInWithEmailPassword,
       signUpWithEmailPassword,
+      claimInstructorAdmin,
       resendSignupConfirmation,
       sendEmailMagicLinkOrOtp,
       verifyEmailOtpCode,

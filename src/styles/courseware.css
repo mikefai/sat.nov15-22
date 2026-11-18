@@ -3593,3 +3593,281 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* ==========================================================================
+   13. Instructor Cohort Portal & Student Drill-Down Inspector
+   ========================================================================== */
+
+.auth-instructor-toggle-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.auth-instructor-input-wrap {
+  padding: 10px 12px;
+  background: var(--accent-ochre-soft);
+  border: 1px solid var(--accent-ochre-border);
+  border-radius: var(--radius-sm);
+}
+
+.btn-instructor-chip {
+  border-color: var(--accent-ochre-border);
+  background: var(--accent-ochre-soft);
+  color: var(--accent-ochre);
+  font-weight: 700;
+}
+
+.btn-instructor-chip.is-active-chip,
+.btn-instructor-chip:hover {
+  background: var(--accent-ochre);
+  border-color: var(--accent-ochre);
+  color: #ffffff;
+}
+
+.account-instructor-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-light);
+}
+
+.instructor-unlocked-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.instructor-claim-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.instructor-claim-row input {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-medium);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+}
+
+.admin-restricted-card {
+  max-width: 640px;
+  margin: 32px auto;
+}
+
+.admin-unlock-inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.admin-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-roster-sheet,
+.admin-drilldown-sheet {
+  margin-top: 24px;
+}
+
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin-search-input {
+  min-width: 260px;
+  flex: 1;
+  max-width: 400px;
+  padding: 8px 12px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-medium);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.admin-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.admin-checkbox-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--ink-700);
+  cursor: pointer;
+}
+
+.admin-sort-select {
+  padding: 7px 10px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-medium);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.admin-roster-table tbody tr {
+  cursor: pointer;
+}
+
+.admin-roster-table tbody tr.admin-row-selected {
+  background: var(--accent-forest-soft);
+}
+
+.admin-student-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-student-cell span {
+  font-size: 0.78rem;
+  color: var(--ink-500);
+}
+
+.admin-alert-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-rust-soft);
+  border: 1px solid var(--accent-rust-border);
+  color: var(--accent-rust);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-empty-state,
+.admin-empty-sub {
+  padding: 18px;
+  background: var(--bg-canvas);
+  border: 1px dashed var(--rule-medium);
+  border-radius: var(--radius-md);
+  color: var(--ink-500);
+  font-size: 0.9rem;
+}
+
+.admin-drill-header h2 {
+  font-family: var(--font-serif);
+  margin: 4px 0 6px;
+}
+
+.admin-drill-email {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--ink-500);
+}
+
+.admin-drill-meta {
+  margin: 0 0 16px;
+  font-size: 0.81rem;
+  color: var(--ink-500);
+}
+
+.admin-drill-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule-light);
+}
+
+.admin-days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.admin-day-card {
+  padding: 14px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-day-acc {
+  font-size: 0.76rem;
+  color: var(--accent-forest);
+  font-weight: 600;
+}
+
+.admin-day-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--ink-500);
+}
+
+.admin-notes-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.admin-notes-split h3 {
+  font-family: var(--font-serif);
+  margin: 0 0 12px;
+}
+
+.admin-vocab-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-vocab-list p {
+  margin: 3px 0 0;
+  font-family: var(--font-serif);
+  color: var(--ink-700);
+}
+
+.admin-reflection-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-reflection-card {
+  padding: 12px 14px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--rule-light);
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+}
+
+.admin-reflection-card p {
+  margin: 6px 0 0;
+}
+
+@media (max-width: 900px) {
+  .admin-notes-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

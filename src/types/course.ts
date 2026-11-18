@@ -200,7 +200,8 @@ export type RouteView =
   | { kind: 'master-plan'; chapter: number }
   | { kind: 'day'; day: number; step: number }
   | { kind: 'vocab'; tab?: 'notebook' | 'flashcards' | 'schedule'; dayFilter?: number }
-  | { kind: 'error-log'; tab?: 'log' | 'reflections' | 'taxonomy' };
+  | { kind: 'error-log'; tab?: 'log' | 'reflections' | 'taxonomy' }
+  | { kind: 'admin' };
 
 export interface QuestionAttempt {
   selectedChoice?: string;

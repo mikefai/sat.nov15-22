@@ -75,6 +75,10 @@ export function parseHashToRoute(hash: string): RouteView {
     return { kind: 'error-log', tab };
   }
 
+  if (clean === 'admin' || clean.startsWith('admin/')) {
+    return { kind: 'admin' };
+  }
+
   return { kind: 'overview' };
 }
 
@@ -92,6 +96,8 @@ export function routeToHash(route: RouteView): string {
         : `#/vocab/${route.tab || 'notebook'}`;
     case 'error-log':
       return `#/error-log/${route.tab || 'log'}`;
+    case 'admin':
+      return '#/admin';
   }
 }
 
@@ -363,7 +369,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       const next = parseHashToRoute(window.location.hash);
       setRoute(next);
       const canonical = routeToHash(next);
-      if (canonical !== '#/overview') {
+      if (canonical !== '#/overview' && canonical !== '#/admin') {
         setState((prev) =>
           prev.lastRouteHash === canonical ? prev : { ...prev, lastRouteHash: canonical }
         );

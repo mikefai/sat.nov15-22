@@ -27,6 +27,7 @@ Every Markdown workbook and tracker compiles losslessly into a warm, distraction
 - **60-Word Spaced Retrieval Studio:** Searchable 7-column vocabulary notebook with `Cover Meanings` self-test mode, interactive 3-layer flashcards, personal English sentence authoring, and custom vocabulary expansion (`#61+`).
 - **Diagnostic Error Log & Reflection Engine:** Inline `+ Log Mistake` capture from any practice item, `E1–E10` / `V1–V7` root-cause classification, automatic **`3+ Recurring Pattern` escalation alerts**, and structured 15-minute End-of-Day Reflection cards.
 - **Supabase Auth & Cloud Sync + Guest Mode:** Sign in via **Google OAuth**, **Email & Password**, or **Magic Link / One-Time Code** to sync progress across devices (`public.profiles` & `public.course_progress` protected by Postgres Row-Level Security), or study in browser-only Guest Mode with automatic local-to-cloud merging when you sign in later.
+- **Instructor Cohort & Student Inspector (`#/admin`):** Database-locked instructor access (`public.admin_users` + `claim-instructor` Edge Function) providing a read-only cohort roster and per-student drill-down across daily steps, missed/flagged R&W & Math items, `E1–E10`/`V1–V7` Error Logs, vocabulary sentences, and daily reflections.
 
 ---
 

@@ -2,7 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { buildStudentOverviewRecords } from '../src/utils/adminAnalytics.ts';
+import {
+  buildStudentOverviewRecords,
+  filterAndSortStudents,
+} from '../src/utils/adminAnalytics.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -203,6 +206,13 @@ assert.equal(newbie.rwAccuracyPct, null);
 assert.equal(newbie.mathAccuracyPct, null);
 assert.equal(newbie.dayBreakdown.length, 7);
 assert.equal(newbie.dayBreakdown[0].completedSteps, 0);
+
+// 1b. Search & sort behavior
+assert.equal(filterAndSortStudents(records, '  HANA  ', 'recent').length, 1);
+assert.equal(filterAndSortStudents(records, 'newbie@example', 'recent')[0].userId, 'stu-empty');
+assert.equal(filterAndSortStudents(records, '', 'steps')[0].userId, 'stu-active');
+assert.equal(filterAndSortStudents(records, '', 'accuracy')[0].userId, 'stu-active');
+assert.equal(filterAndSortStudents(records, '', 'errors')[0].userId, 'stu-active');
 
 // 2. Security check: verify plaintext instructor passcode never appears anywhere in src/
 function collectSrcFiles(dir) {

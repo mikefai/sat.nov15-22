@@ -19,7 +19,9 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
   const {
     user,
     profile,
+    isAdmin,
     openAuthModal,
+    claimInstructorAdmin,
     updateProfile,
     signOut,
   } = useAuth();
@@ -44,6 +46,9 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
   const [editTarget, setEditTarget] = useState(1400);
   const [accountMsg, setAccountMsg] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [showClaimInput, setShowClaimInput] = useState(false);
+  const [claimCode, setClaimCode] = useState('');
+  const [claimingAdmin, setClaimingAdmin] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -104,6 +109,10 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
     sectionCrumb = 'Active Study Studios';
     pageCrumb = 'Diagnostic Error Log & Reflection Workbook';
     prevTarget = { kind: 'vocab', tab: 'notebook' };
+  } else if (route.kind === 'admin') {
+    sectionCrumb = 'Instructor Portal';
+    pageCrumb = 'Student Cohort & Progress Inspector';
+    prevTarget = { kind: 'overview' };
   }
 
   const handleDownloadBackup = () => {
@@ -200,6 +209,19 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
           >
             Backup
           </button>
+
+          {isAdmin && (
+            <button
+              type="button"
+              className={`tool-chip-btn btn-instructor-chip ${
+                route.kind === 'admin' ? 'is-active-chip' : ''
+              }`}
+              onClick={() => navigate({ kind: 'admin' })}
+              title="Open Instructor Student Inspector"
+            >
+              Instructor
+            </button>
+          )}
 
           {user ? (
             <button
@@ -461,6 +483,64 @@ export const TopContextHeader: React.FC<TopContextHeaderProps> = ({
             </form>
 
             {accountMsg && <p className="modal-status-msg">{accountMsg}</p>}
+
+            <div className="account-instructor-section">
+              {isAdmin ? (
+                <div className="instructor-unlocked-row">
+                  <span className="day-badge badge-ochre">INSTRUCTOR ADMIN</span>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      setAccountModalOpen(false);
+                      navigate({ kind: 'admin' });
+                    }}
+                  >
+                    Open Student Cohort Inspector →
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    className="auth-inline-link"
+                    onClick={() => setShowClaimInput((v) => !v)}
+                  >
+                    {showClaimInput
+                      ? '▾ Hide instructor access code'
+                      : '▸ Course instructor? Unlock student cohort view'}
+                  </button>
+                  {showClaimInput && (
+                    <div className="instructor-claim-row">
+                      <input
+                        type="password"
+                        placeholder="Instructor Access Code"
+                        value={claimCode}
+                        onChange={(e) => setClaimCode(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={claimingAdmin}
+                        onClick={async () => {
+                          setClaimingAdmin(true);
+                          setAccountMsg('');
+                          const res = await claimInstructorAdmin(claimCode);
+                          setClaimingAdmin(false);
+                          setAccountMsg(res.message || '');
+                          if (res.ok) {
+                            setClaimCode('');
+                            setShowClaimInput(false);
+                          }
+                        }}
+                      >
+                        {claimingAdmin ? 'Checking…' : 'Unlock'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

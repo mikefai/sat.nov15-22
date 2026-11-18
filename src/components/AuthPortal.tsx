@@ -52,6 +52,8 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ variant }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpToken, setOtpToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showInstructorField, setShowInstructorField] = useState(false);
+  const [instructorCode, setInstructorCode] = useState('');
 
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(urlAuthError);
@@ -80,7 +82,7 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ variant }) => {
   const handleGoogleClick = async () => {
     resetMessages();
     setBusy(true);
-    const res = await signInWithGoogle();
+    const res = await signInWithGoogle(showInstructorField ? instructorCode : undefined);
     if (!res.ok) {
       setErrorMsg(res.message || 'Unable to connect to Google Sign-In.');
       setBusy(false);
@@ -114,7 +116,12 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ variant }) => {
       return;
     }
     setBusy(true);
-    const res = await signUpWithEmailPassword(email, password, displayName);
+    const res = await signUpWithEmailPassword(
+      email,
+      password,
+      displayName,
+      showInstructorField ? instructorCode : undefined
+    );
     setBusy(false);
     if (!res.ok) {
       setErrorMsg(res.message || 'Could not create account.');
@@ -394,8 +401,36 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ variant }) => {
               />
             </label>
 
+            <div className="auth-instructor-toggle-box">
+              <button
+                type="button"
+                className="auth-inline-link"
+                onClick={() => setShowInstructorField((v) => !v)}
+              >
+                {showInstructorField
+                  ? '▾ Hide instructor access code'
+                  : '▸ Course instructor sign-up?'}
+              </button>
+              {showInstructorField && (
+                <label className="auth-field auth-instructor-input-wrap">
+                  <span>Instructor Access Code (optional if using approved admin email)</span>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    placeholder="Enter instructor access code"
+                    value={instructorCode}
+                    onChange={(e) => setInstructorCode(e.target.value)}
+                  />
+                </label>
+              )}
+            </div>
+
             <button type="submit" className="btn-primary auth-submit-btn" disabled={busy}>
-              {busy ? 'Creating Account…' : 'Create Student Account →'}
+              {busy
+                ? 'Creating Account…'
+                : showInstructorField
+                ? 'Create Instructor Account →'
+                : 'Create Student Account →'}
             </button>
 
             {awaitingEmailConfirm && (

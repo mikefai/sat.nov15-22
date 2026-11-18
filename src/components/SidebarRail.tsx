@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { CourseData } from '../types/course';
+import { useAuth } from '../state/useAuth';
 import { useCourseStore } from '../state/useCourseStore';
 
 interface SidebarRailProps {
@@ -13,6 +14,7 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
   mobileOpen,
   onCloseMobile,
 }) => {
+  const { isAdmin } = useAuth();
   const { state, route, navigate } = useCourseStore();
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>(() => ({
     1: true,
@@ -259,6 +261,20 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
               )}
             </button>
           </div>
+
+          {isAdmin && (
+            <div className="rail-group">
+              <div className="rail-group-heading">Instructor Administration</div>
+              <button
+                type="button"
+                className={`rail-item ${route.kind === 'admin' ? 'is-active' : ''}`}
+                onClick={() => handleNav({ kind: 'admin' })}
+              >
+                <span className="rail-item-index">IN</span>
+                <span className="rail-item-label">Student Cohort Inspector</span>
+              </button>
+            </div>
+          )}
         </nav>
       </aside>
     </>

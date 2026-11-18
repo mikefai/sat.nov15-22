@@ -286,3 +286,37 @@ export function buildStudentOverviewRecords(
 
   return records.sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt));
 }
+
+
+export type RosterSortKey = 'recent' | 'steps' | 'solved' | 'accuracy' | 'errors';
+
+export function filterAndSortStudents(
+  records: StudentOverviewRecord[],
+  searchQuery: string,
+  sortBy: RosterSortKey
+): StudentOverviewRecord[] {
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = q
+    ? records.filter(
+        (r) =>
+          r.displayName.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q)
+      )
+    : [...records];
+
+  return filtered.sort((a, b) => {
+    switch (sortBy) {
+      case 'steps':
+        return b.completedSteps - a.completedSteps || b.solvedQuestions - a.solvedQuestions;
+      case 'solved':
+        return b.solvedQuestions - a.solvedQuestions || b.completedSteps - a.completedSteps;
+      case 'accuracy':
+        return (b.overallAccuracyPct ?? -1) - (a.overallAccuracyPct ?? -1);
+      case 'errors':
+        return b.errorLogCount - a.errorLogCount || b.solvedQuestions - a.solvedQuestions;
+      case 'recent':
+      default:
+        return b.lastActiveAt.localeCompare(a.lastActiveAt);
+    }
+  });
+}
