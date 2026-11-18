@@ -722,6 +722,145 @@ const SECTION_SHORT_LABELS = [
   'Mastery Gate',
 ];
 
+function extractVocabKeyMap(sec8Body, day) {
+  const { subSections } = splitByH3(sec8Body);
+  const subB = subSections.find((s) => /^B\./i.test(s.title));
+  const keyMap = new Map();
+  if (!subB) return keyMap;
+
+  // Match every `VOC-*` or `SR-*` answer entry (whether one-per-line or inline `·`-separated)
+  const tokenRegex = /\*\*`((?:VOC|SR)-(?:D\d+-)?Q\d+)`(?:\s*\([^)]*\))?(?:\s*\*\*)?\s*(?:→|:)?\s*(?:\*\*)?:?\s*/g;
+  const matches = [...subB.body.matchAll(tokenRegex)];
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    const id = m[1];
+    const start = m.index + m[0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : subB.body.length;
+    let rawChunk = subB.body
+      .slice(start, end)
+      .split(/\n#{2,4}\s+/)[0]
+      .replace(/[·•]\s*$/, '')
+      .replace(/^\s*[-*]\s*/, '')
+      .trim();
+    rawChunk = rawChunk.replace(/\n---\s*$/, '').trim();
+    // Strip leading leftover bold/colon markers when `:` was inside `**`
+    rawChunk = rawChunk.replace(/^[*:\s→]+/, '').trim();
+    // Clean unbalanced trailing `**` on the first line when the header bold closed after `Correct: B (...)**`
+    const chunkLines = rawChunk.split(/\r?\n/);
+    if ((chunkLines[0].match(/\*\*/g) || []).length % 2 === 1 && chunkLines[0].trim().endsWith('**')) {
+      chunkLines[0] = chunkLines[0].replace(/\*\*\s*$/, '').trim();
+      rawChunk = chunkLines.join('\n').trim();
+    }
+    if (!rawChunk) continue;
+
+    const mcAnsMatch =
+      rawChunk.match(/Correct(?:\s+Answer)?:\s*([A-D])\b/i) ||
+      rawChunk.match(/^([A-D])(?:\b|\s|\*)/);
+    const correctAnswer = mcAnsMatch ? mcAnsMatch[1].toUpperCase() : '';
+    keyMap.set(id, {
+      correctAnswer,
+      answerHtml: renderMarkdownBlock(rawChunk, `d${day}-vockey-${id}`).html,
+    });
+  }
+  return keyMap;
+}
+
+function parseVocabExercises(sec4SubSectionsRaw, day, keyMap) {
+  const exercises = [];
+  const itemStartRegex =
+    /^(?:-\s+|\d+\.\s+)?\*\*`((?:VOC|SR)-(?:D\d+-)?Q\d+)`(?:\s*\[[^\]]*\])?:?\*\*:?\s*(.*)$/;
+
+  for (const sub of sec4SubSectionsRaw) {
+    if (/Core Academic Vocabulary/i.test(sub.title)) continue;
+    const lines = sub.body.split(/\r?\n/);
+    let currentGroup = sub.title.replace(/`/g, '').trim();
+    let currentItem = null;
+
+    const flushItem = () => {
+      if (!currentItem) return;
+      const rawBlock = currentItem.lines.join('\n').replace(/\n---\s*$/, '').trim();
+      const qLines = rawBlock.split(/\r?\n/);
+      const stemLines = [];
+      const choices = [];
+      let inChoices = false;
+      let curChoice = null;
+
+      for (const ql of qLines) {
+        const trimmed = ql.trim();
+        // Support inline choices: `A) foo · B) bar · C) baz · D) qux`
+        if (/^A\)\s+.+\s+B\)\s+.+\s+C\)\s+.+\s+D\)\s+/i.test(trimmed)) {
+          inChoices = true;
+          const inlineParts = trimmed.split(/\s*(?:·|\|)?\s*(?=[A-D]\)\s+)/);
+          for (const part of inlineParts) {
+            const pm = part.trim().match(/^([A-D])\)\s+(.+?)(?:\s*·\s*)?$/);
+            if (pm) choices.push({ letter: pm[1], raw: pm[2].trim() });
+          }
+          continue;
+        }
+
+        const cm = trimmed.match(/^([A-D])\)\s+(.+)$/);
+        if (cm) {
+          inChoices = true;
+          if (curChoice) choices.push(curChoice);
+          curChoice = { letter: cm[1], raw: cm[2].trim() };
+        } else if (inChoices && curChoice && trimmed && !/^---/.test(trimmed)) {
+          curChoice.raw += ' ' + trimmed;
+        } else if (!inChoices) {
+          stemLines.push(ql);
+        }
+      }
+      if (curChoice) choices.push(curChoice);
+
+      const isMc = choices.length === 4;
+      const stemMd = (isMc ? stemLines.join('\n') : rawBlock).trim();
+      const keyInfo = keyMap.get(currentItem.id) || { correctAnswer: '', answerHtml: '' };
+
+      exercises.push({
+        id: currentItem.id,
+        number: exercises.length + 1,
+        groupTitle: currentItem.groupTitle,
+        format: isMc ? 'MC' : 'SHORT',
+        promptHtml: renderMarkdownBlock(stemMd, `d${day}-vocq-${currentItem.id}`).html,
+        choices: isMc
+          ? choices.map((c) => ({
+              letter: c.letter,
+              raw: c.raw,
+              html: renderInlineMarkdown(c.raw, `d${day}-vocq-${currentItem.id}-c${c.letter}`),
+            }))
+          : [],
+        correctAnswer: isMc ? keyInfo.correctAnswer : '',
+        answerHtml: keyInfo.answerHtml,
+      });
+      currentItem = null;
+    };
+
+    for (const line of lines) {
+      const h4 = line.match(/^#{3,4}\s+(.+)$/);
+      const im = line.match(itemStartRegex);
+      if (h4) {
+        flushItem();
+        currentGroup = h4[1].replace(/`/g, '').trim();
+      } else if (im) {
+        flushItem();
+        currentItem = {
+          id: im[1],
+          groupTitle: currentGroup,
+          lines: im[2] ? [im[2].trim()] : [],
+        };
+      } else if (currentItem) {
+        if (/^---\s*$/.test(line)) {
+          flushItem();
+        } else {
+          currentItem.lines.push(line);
+        }
+      }
+    }
+    flushItem();
+  }
+
+  return exercises;
+}
+
 function parseDayWorkbook(dayMeta) {
   const { day } = dayMeta;
   const filename = `Part-2-Day-0${day}-Complete-Learning-Package.md`;
@@ -753,6 +892,8 @@ function parseDayWorkbook(dayMeta) {
   // Parse Section 4 (Vocabulary Lessons & Exercises + matched Section 8B key)
   const sec4Split = splitByH3(sections[3].body);
   const sec8SubB = sec8Parsed.subSections.find((s) => /^B\./i.test(s.title)) || null;
+  const vocabKeyMap = extractVocabKeyMap(sections[7].body, day);
+  const vocabExercises = parseVocabExercises(sec4Split.subSections, day, vocabKeyMap);
   const sec4SubSections = sec4Split.subSections.map((sub, idx) => {
     const rendered = renderMarkdownBlock(sub.body, `d${day}-s4-sub${idx + 1}`);
     return {
@@ -775,6 +916,7 @@ function parseDayWorkbook(dayMeta) {
     const num = idx + 1;
     const cleanHeading = s.title.replace(/^\d+\.\s*/, '').replace(/`/g, '').trim();
     let badge = '';
+    if (num === 4 && vocabExercises.length > 0) badge = `${vocabExercises.length} Drills`;
     if (num === 5) badge = `${sec5Parsed.questions.length} Qs`;
     if (num === 7) badge = `${sec7Parsed.questions.length} Qs`;
     if (num === 8) badge = 'Spoiler Guard';
@@ -809,6 +951,7 @@ function parseDayWorkbook(dayMeta) {
       introHtml: renderMarkdownBlock(sec4Split.intro, `d${day}-s4-intro`).html,
       subSections: sec4SubSections,
       answerKeyHtml: sec8SubB ? sec8SubB.html : '',
+      exercises: vocabExercises,
     },
     rwPractice: sec5Parsed,
     mathLessons: sec6Parsed,

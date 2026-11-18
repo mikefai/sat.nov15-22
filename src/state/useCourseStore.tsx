@@ -16,6 +16,7 @@ import type {
   QuestionAttempt,
   RouteView,
   StudentErrorEntry,
+  VocabExerciseAttempt,
   VocabUserItem,
 } from '../types/course';
 import type { Json } from '../types/supabase';
@@ -30,6 +31,7 @@ const EMPTY_STATE: CourseProgressState = {
   version: 1,
   lastRouteHash: '#/overview',
   questionAttempts: {},
+  vocabExerciseAttempts: {},
   checkedBoxes: {},
   completedSteps: {},
   vocabProgress: {},
@@ -112,6 +114,7 @@ function normalizePartialState(parsed?: Partial<CourseProgressState> | null): Co
         ? parsed.lastRouteHash
         : '#/overview',
     questionAttempts: parsed.questionAttempts || {},
+    vocabExerciseAttempts: parsed.vocabExerciseAttempts || {},
     checkedBoxes: parsed.checkedBoxes || {},
     completedSteps: parsed.completedSteps || {},
     vocabProgress: parsed.vocabProgress || {},
@@ -174,6 +177,11 @@ function mergeCourseProgress(
       questionAttempts[qId] = rAtt;
     }
   }
+
+  const vocabExerciseAttempts: Record<string, VocabExerciseAttempt> = {
+    ...(local.vocabExerciseAttempts || {}),
+    ...(remote.vocabExerciseAttempts || {}),
+  };
 
   const checkedBoxes: Record<string, boolean> = { ...local.checkedBoxes };
   for (const [k, v] of Object.entries(remote.checkedBoxes)) {
@@ -253,6 +261,7 @@ function mergeCourseProgress(
     version: 1,
     lastRouteHash,
     questionAttempts,
+    vocabExerciseAttempts,
     checkedBoxes,
     completedSteps,
     vocabProgress,
@@ -299,6 +308,11 @@ interface CourseStoreContextValue {
     updater: (prev: QuestionAttempt) => QuestionAttempt
   ) => void;
   resetQuestionSet: (questionIds: string[]) => void;
+  updateVocabExerciseAttempt: (
+    exerciseId: string,
+    updater: (prev: VocabExerciseAttempt) => VocabExerciseAttempt
+  ) => void;
+  resetVocabExercises: (exerciseIds: string[]) => void;
   toggleCheckbox: (checkId: string, checked: boolean) => void;
   toggleStepComplete: (day: number, step: number, explicit?: boolean) => void;
   updateVocabItem: (wordId: string, patch: Partial<VocabUserItem>) => void;
@@ -529,6 +543,33 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateVocabExerciseAttempt = useCallback(
+    (exerciseId: string, updater: (prev: VocabExerciseAttempt) => VocabExerciseAttempt) => {
+      setState((prev) => {
+        const map = prev.vocabExerciseAttempts || {};
+        const current = map[exerciseId] || { checked: false };
+        return {
+          ...prev,
+          vocabExerciseAttempts: {
+            ...map,
+            [exerciseId]: updater(current),
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const resetVocabExercises = useCallback((exerciseIds: string[]) => {
+    setState((prev) => {
+      const next = { ...(prev.vocabExerciseAttempts || {}) };
+      for (const id of exerciseIds) {
+        delete next[id];
+      }
+      return { ...prev, vocabExerciseAttempts: next };
+    });
+  }, []);
+
   const toggleCheckbox = useCallback((checkId: string, checked: boolean) => {
     setState((prev) => ({
       ...prev,
@@ -683,6 +724,8 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       navigate,
       updateQuestionAttempt,
       resetQuestionSet,
+      updateVocabExerciseAttempt,
+      resetVocabExercises,
       toggleCheckbox,
       toggleStepComplete,
       updateVocabItem,
@@ -707,6 +750,8 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       navigate,
       updateQuestionAttempt,
       resetQuestionSet,
+      updateVocabExerciseAttempt,
+      resetVocabExercises,
       toggleCheckbox,
       toggleStepComplete,
       updateVocabItem,

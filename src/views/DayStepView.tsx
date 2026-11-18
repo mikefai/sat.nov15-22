@@ -4,6 +4,8 @@ import { useCourseStore } from '../state/useCourseStore';
 import { RichHtml } from '../components/RichHtml';
 import { PracticeSetWorkspace } from '../components/PracticeSetWorkspace';
 import { QuickErrorLogger } from '../components/QuickErrorLogger';
+import { VocabExerciseWorkspace } from '../components/VocabExerciseWorkspace';
+import { FloatingStudyTools } from '../components/FloatingStudyTools';
 
 interface DayStepViewProps {
   course: CourseData;
@@ -41,11 +43,12 @@ const InlineChecksPanel: React.FC<{ lesson: TeachingLesson }> = ({ lesson }) => 
       </div>
 
       <div className="inline-checks-stack">
-        {lesson.checks.map((chk) => {
+        {lesson.checks.map((chk, idx) => {
           const isOpen = Boolean(revealed[chk.id]);
           return (
             <div key={chk.id} className="cc-interactive-item">
               <div className="cc-top-row">
+                <span className="q-index-badge mono-num">Q{idx + 1}</span>
                 <span className="cc-id-pill mono-num">{chk.id}</span>
                 {chk.promptHtml && (
                   <span
@@ -187,18 +190,19 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
       }
 
       case 4: {
-        const dayWordsCount = course.vocabStudio.words.filter(
-          (w) => w.day === dayData.day
-        ).length;
+        const dayWords = course.vocabStudio.words.filter((w) => w.day === dayData.day);
+        const coreWordSections = dayData.vocabulary.subSections.filter((sub) =>
+          /Core Academic Vocabulary/i.test(sub.title)
+        );
         return (
           <div className="lessons-stack">
             <div className="vocab-studio-bridge-banner">
               <div>
                 <div className="section-kicker">THREE-LAYER ACADEMIC VOCABULARY</div>
-                <h3>Day 0{dayData.day} Contextual Word Studio ({dayWordsCount} Core Words)</h3>
+                <h3>Day 0{dayData.day} Contextual Word Studio ({dayWords.length} Core Words)</h3>
                 <p>
-                  Study each word in context below, complete all exercises before peeking at the
-                  key, or drill today&apos;s words interactively in Flashcard Mode.
+                  Study today&apos;s 3-layer profiles, track mastery &amp; write your own context
+                  sentences, and complete all numbered interactive drills below.
                 </p>
               </div>
               <button
@@ -218,7 +222,7 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
               </div>
             )}
 
-            {dayData.vocabulary.subSections.map((sub) => (
+            {coreWordSections.map((sub) => (
               <article key={sub.id} className="reading-sheet-wide">
                 <h2
                   className="lesson-card-title"
@@ -228,19 +232,25 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
               </article>
             ))}
 
+            <VocabExerciseWorkspace
+              day={dayData.day}
+              dayWords={dayWords}
+              exercises={dayData.vocabulary.exercises || []}
+            />
+
             {dayData.vocabulary.answerKeyHtml && (
               <section className="spoiler-vault-card">
                 <div className="spoiler-vault-header">
                   <div>
                     <span className="spoiler-tag">SPOILER GUARD</span>
-                    <h4>Day 0{dayData.day} Vocabulary Exercises — Official Answer Key</h4>
+                    <h4>Day 0{dayData.day} Complete Vocabulary Answer Key (Full Reference)</h4>
                   </div>
                   <button
                     type="button"
                     className="btn-secondary"
                     onClick={() => setVocabKeyOpen((v) => !v)}
                   >
-                    {vocabKeyOpen ? 'Hide Exercise Answers' : 'Reveal Exercise Answers'}
+                    {vocabKeyOpen ? 'Hide Full Reference Key' : 'Reveal Full Reference Key'}
                   </button>
                 </div>
                 {vocabKeyOpen && (
@@ -250,6 +260,11 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
                 )}
               </section>
             )}
+
+            <FloatingStudyTools
+              scopeKey={`d${dayData.day}-s4`}
+              label="Vocab Scratchpad & Highlighter"
+            />
           </div>
         );
       }
@@ -352,11 +367,12 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
 
               {dayData.errorLab.cases.length > 0 && (
                 <div className="diagnostic-cases-stack">
-                  {dayData.errorLab.cases.map((c) => {
+                  {dayData.errorLab.cases.map((c, idx) => {
                     const userCase = state.caseProgress[c.id] || { draft: '', revealed: false };
                     return (
                       <div key={c.id} className="case-study-card">
                         <div className="case-card-top">
+                          <span className="q-index-badge mono-num">Case {idx + 1}</span>
                           <span className="q-id-code mono-num">{c.id}</span>
                           {c.categoryLabel && (
                             <span className="case-cat-badge">{c.categoryLabel}</span>
@@ -452,7 +468,7 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
                     return (
                       <div key={item.id} className="mastery-item-card">
                         <div className="case-card-top">
-                          <span className="q-index-badge mono-num">{item.number}</span>
+                          <span className="q-index-badge mono-num">Q{item.number}</span>
                           <span className="q-id-code mono-num">{item.id}</span>
                           {item.topic && <span className="case-cat-badge">{item.topic}</span>}
                         </div>
@@ -536,6 +552,11 @@ export const DayStepView: React.FC<DayStepViewProps> = ({ course, dayData, step 
                 </div>
               )}
             </article>
+
+            <FloatingStudyTools
+              scopeKey={`d${dayData.day}-s10`}
+              label="Mastery Scratchpad & Highlighter"
+            />
           </div>
         );
       }

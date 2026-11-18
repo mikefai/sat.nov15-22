@@ -4,6 +4,7 @@ import { DEFAULT_ATTEMPT, useCourseStore } from '../state/useCourseStore';
 import { checkQuestionAnswer, parseSprStudentInput } from '../utils/sprGrading';
 import { RichHtml } from './RichHtml';
 import { QuickErrorLogger } from './QuickErrorLogger';
+import { FloatingStudyTools } from './FloatingStudyTools';
 
 interface PracticeSetWorkspaceProps {
   day: number;
@@ -170,7 +171,9 @@ export const PracticeSetWorkspace: React.FC<PracticeSetWorkspaceProps> = ({
 
         <div className="practice-card-top">
           <div className="q-meta-left">
-            <span className="q-index-badge mono-num">{q.number}</span>
+            <span className="q-index-badge mono-num">
+              Q{q.number} <span className="q-index-total">/ {questions.length}</span>
+            </span>
             <span className="q-id-code mono-num">{q.id}</span>
             <span className="q-domain-crumb">
               {q.domain}
@@ -644,6 +647,11 @@ export const PracticeSetWorkspace: React.FC<PracticeSetWorkspaceProps> = ({
           {questions.map((q, idx) => renderQuestionCard(q, idx))}
         </div>
       )}
+
+      <FloatingStudyTools
+        scopeKey={`d${day}-s${stepNumber}`}
+        label="Exam Scratchpad & Highlighter"
+      />
     </div>
   );
 };

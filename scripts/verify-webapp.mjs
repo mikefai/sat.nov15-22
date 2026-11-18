@@ -23,6 +23,7 @@ for (const day of data.days) {
   assert.equal(day.steps.length, 10, `Day ${day.day} must have 10 steps`);
   const allQs = [...day.rwPractice.questions, ...day.mathPractice.questions];
   for (const q of allQs) {
+    assert.ok(q.number >= 1, `${q.id} must have a valid question number`);
     assert.ok(q.stemHtml.length > 20, `${q.id} must have rendered stem HTML`);
     assert.ok(q.explanationHtml.length > 20, `${q.id} must have rendered explanation HTML`);
     if (q.format === 'MC') {
@@ -36,6 +37,16 @@ for (const day of data.days) {
       );
     }
   }
+  assert.ok(day.vocabulary.exercises.length >= 15, `Day ${day.day} must have interactive vocab exercises`);
+  day.vocabulary.exercises.forEach((ex, idx) => {
+    assert.equal(ex.number, idx + 1, `${ex.id} must have sequential number`);
+    assert.ok(ex.promptHtml.length > 10, `${ex.id} must have promptHtml`);
+    assert.ok(ex.answerHtml.length > 0, `${ex.id} must have answerHtml`);
+    if (ex.format === 'MC') {
+      assert.equal(ex.choices.length, 4, `${ex.id} MC vocab drill must have 4 choices`);
+      assert.match(ex.correctAnswer, /^[A-D]$/, `${ex.id} MC vocab drill must have A-D key`);
+    }
+  });
 }
 
 for (const w of data.vocabStudio.words) {

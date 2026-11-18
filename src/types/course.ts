@@ -53,6 +53,24 @@ export interface RenderedSubSection {
   html: string;
 }
 
+export interface VocabExerciseItem {
+  id: string;
+  number: number;
+  groupTitle: string;
+  format: 'MC' | 'SHORT';
+  promptHtml: string;
+  choices: ChoiceOption[];
+  correctAnswer: string;
+  answerHtml: string;
+}
+
+export interface VocabExerciseAttempt {
+  selectedChoice?: string;
+  draft?: string;
+  checked: boolean;
+  isCorrect?: boolean;
+}
+
 export interface DiagnosticCaseItem {
   id: string;
   categoryLabel: string;
@@ -97,6 +115,7 @@ export interface DayWorkbook {
     introHtml: string;
     subSections: RenderedSubSection[];
     answerKeyHtml: string;
+    exercises: VocabExerciseItem[];
   };
   rwPractice: { introHtml: string; questions: PracticeQuestion[] };
   mathLessons: { introHtml: string; lessons: TeachingLesson[] };
@@ -269,6 +288,7 @@ export interface CourseProgressState {
   version: number;
   lastRouteHash: string;
   questionAttempts: Record<string, QuestionAttempt>;
+  vocabExerciseAttempts?: Record<string, VocabExerciseAttempt>;
   checkedBoxes: Record<string, boolean>;
   completedSteps: Record<string, boolean>;
   vocabProgress: Record<string, VocabUserItem>;
